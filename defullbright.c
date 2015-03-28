@@ -139,12 +139,13 @@ unsigned char DeFullbright(unsigned char in)
                 return fixuptable[(int)in - (256 - NUMFULLBRIGHTS)];
 }
 
-void DeFullbrightPixels(unsigned char *data, int count)
+void DeFullbrightPixels(unsigned char *data, int count, int preserve_255)
 {
 	int p;
 	for (p=0; p<count; p++)
 	{
-		data[p] = DeFullbright(data[p]);
+		if (!preserve_255 || data[p] != 255)
+			data[p] = DeFullbright(data[p]);
 	}
 }
 
@@ -425,7 +426,9 @@ void defullbright(char *filename, int preview)
 				Preview(lump->name, pixeldata, w, h);
 			else
 			{
-				DeFullbrightPixels(pixeldata, pixeldata_numbytes);
+				int preserve_255 = (miptex->name[0] == '{');
+				if (preserve_255) printf("Preserving index 255 for fence texture '%s'\n", miptex->name);
+				DeFullbrightPixels(pixeldata, pixeldata_numbytes, preserve_255);
 			}
 		}
 		else
