@@ -346,6 +346,8 @@ typedef struct miptex_s {
 #define TYPE_WAD2 0
 #define TYPE_WAD3 1
 
+static int previews_written = 0;
+
 void Preview(const char *texname, const unsigned char *data, int width, int height)
 {
 	char tempname[4096];
@@ -408,7 +410,10 @@ void Preview(const char *texname, const unsigned char *data, int width, int heig
 
 	// only bother if there are some fullbrights
 	if (has_fullbrights)
-		writefile(tempname, buffer, out - buffer);
+	{
+		if (0 == writefile(tempname, buffer, out - buffer))
+			previews_written++;
+	}
 
 	free(buffer);
 }
@@ -580,6 +585,9 @@ int main(int argc, char **argv)
 
 	for (; i<argc; i++)
 		defullbright(argv[i], preview);
+
+	if (preview)
+		printf("wrote %d .tga previews of the textures containing fullbrights\n", previews_written);
 
 	return 0;
 }
