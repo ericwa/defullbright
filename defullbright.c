@@ -31,6 +31,38 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define NUMFULLBRIGHTS 32
 
+// list of texture names to process
+static int texlist_count = 0;
+#define TEXLIST_MAX 65536
+static char texlist[TEXLIST_MAX][65];
+
+static void Texlist_Add(const char *texname)
+{
+	if (texlist_count >= TEXLIST_MAX)
+	{
+		printf("-list overflow\n");
+		exit(1);
+	}
+	if (strlen(texname) > 64)
+	{
+		printf("texture name must be 64 chars or less\n");
+		exit(1);
+	}
+
+	strcpy(texlist[texlist_count], texname);
+	texlist_count++;
+}
+
+static bool Texlist_Contains(const char *texname)
+{
+	for (int i=0; i<texlist_count; i++)
+	{
+		if (!strcmp(texlist[i], texname))
+			return true;
+	}
+	return false;
+}
+
 unsigned char quakepalette[768] =
 {
 	0x00,0x00,0x00,0x0F,0x0F,0x0F,0x1F,0x1F,0x1F,0x2F,0x2F,0x2F,0x3F,0x3F,0x3F,0x4B,
@@ -145,6 +177,16 @@ unsigned char DeFullbright(unsigned char in)
                 return in;
         else
                 return fixuptable[(int)in - (256 - NUMFULLBRIGHTS)];
+}
+
+static bool HasFullbrights(const unsigned char *data, const int count)
+{
+	for (int p=0; p<count; p++)
+	{
+		if (IsFullbright(data[p]))
+			return true;
+	}
+	return false;
 }
 
 void DeFullbrightPixels(unsigned char *data, const int count, const bool preserve_255)
@@ -433,13 +475,29 @@ void defullbright(const char *filename, bool preview)
 //			printf("encountered lump type 'MIPTEX' named \"%s\" (%d x %d). defullbrighting %d bytes of %d lump\n",
 //				 lump->name, w, h, pixeldata_numbytes, max_pixeldata_bytes);
 
+			const bool in_texlist = Texlist_Contains(miptex->name);
+			const bool has_fullbrights = HasFullbrights(pixeldata, pixeldata_numbytes);
+
 			if (preview)
 				Preview(lump->name, pixeldata, w, h);
 			else
 			{
-				int preserve_255 = (miptex->name[0] == '{');
-				if (preserve_255) printf("Preserving index 255 for fence texture '%s'\n", miptex->name);
-				DeFullbrightPixels(pixeldata, pixeldata_numbytes, preserve_255);
+				if (!has_fullbrights)
+				{
+					printf("skipping '%s' (no fullbright pixels)\n", miptex->name);
+				}
+				else if (!in_texlist && texlist_count != 0)
+				{
+					printf("skipping '%s' (not in -list file)\n", miptex->name);
+				}
+				else
+				{
+					const bool preserve_255 = (miptex->name[0] == '{');
+			
+					printf("applying de-fullbrighting to '%s'\n", miptex->name);
+
+					DeFullbrightPixels(pixeldata, pixeldata_numbytes, preserve_255);
+				}
 			}
 		}
 		else
@@ -468,6 +526,27 @@ void defullbright(const char *filename, bool preview)
 	free(waddata);
 }
 
+static void LoadList(const char *filename)
+{
+	printf("Loading list of textures to defullbright from '%s'...\n", filename);
+	
+	FILE *f = fopen(filename, "rt");
+	if (!f)
+	{
+		printf("error opening '%s'\n", filename);
+		exit(1);
+	}
+
+	char texname[65];
+	int fields = 0;
+	while ((fields = fscanf(f, "%64s", texname)) == 1)
+	{
+		Texlist_Add(texname);
+	}
+		
+	fclose(f);
+}
+
 int main(int argc, char **argv)
 {
 	int i = 1;
@@ -475,15 +554,27 @@ int main(int argc, char **argv)
 
 	SwapDetect();
 	
-	if (argc >= 2 && 0 == strcmp("-preview", argv[1]))
+	if (i < argc && !strcmp("-preview", argv[i]))
 	{
 		i++;
 		preview = 1;
 	}
+
+	if (i < argc && !strcmp("-list", argv[i]))
+	{
+		i++;
+		if (i >= argc)
+		{
+			printf("-list requires an argument\n");
+			return 1;
+		}
+		LoadList(argv[i]);
+		i++;
+	}
 	
 	if (i >= argc)
 	{
-		printf("usage: defullbright [-preview] wadfile1.wad [wadfile2.wad] [...]\n");
+		printf("usage: defullbright [-preview] [-list list.txt] wadfile1.wad [wadfile2.wad] [...]\n");
 		return 1;
 	}
 
