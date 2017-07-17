@@ -305,7 +305,7 @@ int IsFullbright(unsigned char index)
 	return index >= (256 - NUMFULLBRIGHTS);
 }
 
-void Preview(char *texname, unsigned char *data, int width, int height)
+void Preview(const char *texname, const unsigned char *data, int width, int height)
 {
 	char tempname[4096];
 	sprintf(tempname, "%s.tga", texname);
@@ -371,7 +371,7 @@ void Preview(char *texname, unsigned char *data, int width, int height)
 	free(buffer);
 }
 
-void defullbright(char *filename, int preview)
+void defullbright(const char *filename, bool preview)
 {
 	char tempname[4096];
 	int wadsize, size, numlumps, i;
@@ -486,16 +486,6 @@ int main(int argc, char **argv)
 		printf("usage: defullbright [-preview] wadfile1.wad [wadfile2.wad] [...]\n");
 		return 1;
 	}
-
-
-#if 0
-	int k = 0;
-	for (k=0; k<256; k++)
-	{
-		int got = DeFullbright(k);
-		printf("%d => %d\n", k, got);
-	}
-#endif
 
 	for (; i<argc; i++)
 		defullbright(argv[i], preview);
