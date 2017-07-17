@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <math.h>
 #include <assert.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 #define NUMFULLBRIGHTS 32
 
@@ -81,6 +82,8 @@ unsigned char quakepalette[768] =
 	0xE7,0xFF,0xD7,0xFF,0xFF,0x67,0x00,0x00,0x8B,0x00,0x00,0xB3,0x00,0x00,0xD7,0x00,
 	0x00,0xFF,0x00,0x00,0xFF,0xF3,0x93,0xFF,0xF7,0xC7,0xFF,0xFF,0xFF,0x9F,0x5B,0x53
 };
+
+#define qmin(a, b) ((a) < (b) ? (a) : (b))
 
 double Dist(int r1, int g1, int b1, int r2, int g2, int b2)
 {
@@ -325,6 +328,8 @@ void Preview(char *texname, unsigned char *data, int width, int height)
 	buffer[17] = 8; // 8 attribute bits per pixel, bottom left origin
 	out = buffer + 18;
 
+	bool has_fullbrights = false;
+
 	// copy image
 	for (y = 0;y < height;y++)
 	{
@@ -343,19 +348,25 @@ void Preview(char *texname, unsigned char *data, int width, int height)
 			}
 			else
 			{
-				// Darken non-fullbright pixels to 33%
-				float factor = IsFullbright(pixel) ? 1 : 1;// 0.33;
+				if (IsFullbright(pixel))
+					has_fullbrights = true;
+
+				// Multiply fullbright pixels by 4 to make them brighter
+				// Darken non-fullbright pixels by 50%
+				float factor = IsFullbright(pixel) ? 4.0 : 0.5;
 			
-				*out++ = quakepalette[pixel*3+2] * factor;
-				*out++ = quakepalette[pixel*3+1] * factor;
-				*out++ = quakepalette[pixel*3+0] * factor;
+				*out++ = qmin(255, (int)(quakepalette[pixel*3+2] * factor));
+				*out++ = qmin(255, (int)(quakepalette[pixel*3+1] * factor));
+				*out++ = qmin(255, (int)(quakepalette[pixel*3+0] * factor));
 				*out++ = 255;
 			}
 			in ++;
 		}
 	}
 
-	writefile(tempname, buffer, out - buffer);
+	// only bother if there are some fullbrights
+	if (has_fullbrights)
+		writefile(tempname, buffer, out - buffer);
 
 	free(buffer);
 }
