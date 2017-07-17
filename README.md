@@ -1,6 +1,9 @@
 defullbright
 ============
 
+- Website: https://github.com/ericwa/defullbright
+- License: GPLv2+
+
 Quake texture tool for removing fullbright pixels in wad files.
 
 Usage: `defullbright [-preview] [-list list.txt] wadfile1.wad [wadfile2.wad] [...]`
