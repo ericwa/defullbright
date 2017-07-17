@@ -83,6 +83,11 @@ unsigned char quakepalette[768] =
 	0x00,0xFF,0x00,0x00,0xFF,0xF3,0x93,0xFF,0xF7,0xC7,0xFF,0xFF,0xFF,0x9F,0x5B,0x53
 };
 
+static bool IsFullbright(unsigned char index)
+{
+	return index >= (256 - NUMFULLBRIGHTS);
+}
+
 #define qmin(a, b) ((a) < (b) ? (a) : (b))
 
 double Dist(int r1, int g1, int b1, int r2, int g2, int b2)
@@ -136,23 +141,22 @@ unsigned char DeFullbright(unsigned char in)
                 builtfixup = 1;
         }
 
-        if (in < (256 - NUMFULLBRIGHTS))
+        if (!IsFullbright(in))
                 return in;
         else
                 return fixuptable[(int)in - (256 - NUMFULLBRIGHTS)];
 }
 
-void DeFullbrightPixels(unsigned char *data, int count, int preserve_255)
+void DeFullbrightPixels(unsigned char *data, const int count, const bool preserve_255)
 {
-	int p;
-	for (p=0; p<count; p++)
+	for (int p=0; p<count; p++)
 	{
 		if (!preserve_255 || data[p] != 255)
 			data[p] = DeFullbright(data[p]);
 	}
 }
 
-int readfile(char *filename, void **mem, int *size)
+int readfile(const char *filename, void **mem, int *size)
 {
 	FILE *file;
 	char *filemem;
@@ -300,18 +304,14 @@ typedef struct miptex_s {
 #define TYPE_WAD2 0
 #define TYPE_WAD3 1
 
-int IsFullbright(unsigned char index)
-{
-	return index >= (256 - NUMFULLBRIGHTS);
-}
-
 void Preview(const char *texname, const unsigned char *data, int width, int height)
 {
 	char tempname[4096];
 	sprintf(tempname, "%s.tga", texname);
 	
 	int y;
-	unsigned char *buffer, *in, *end, *out;
+	const unsigned char *in, *end;
+	unsigned char *buffer, *out;
 
 	// contains transparent pixels
 	// BGRA truecolor since some programs can't deal with BGRA colormaps
