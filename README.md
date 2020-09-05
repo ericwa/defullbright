@@ -3,6 +3,7 @@ defullbright
 
 - Website: https://github.com/ericwa/defullbright
 - License: GPLv2+
+- Windows executable: https://github.com/ericwa/defullbright/releases/download/v0.2/defullbright-v0.2.zip
 
 Quake texture tool for removing fullbright pixels in wad files.
 
